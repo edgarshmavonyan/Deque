@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <assert.h>
 #include <type_traits>
-#define DEBUG
 
 
 template <class deque, class T>
@@ -253,25 +252,6 @@ public:
         return std::reverse_iterator<const_iterator>(const_iterator(*this, ptrdiff_t(0)));
     }
 
-
-
-#ifdef DEBUG
-    friend std::ostream& operator<<(std::ostream& os, const Deque& data) {
-        if (data.data_ == nullptr || data.size_ == 0) return os;
-
-        if (data.head_ <= data.tail_)
-            for (int* i = data.head_; i <= data.tail_; i++)
-                os << *i << ' ';
-        else {
-            for (int* i = data.head_; i < data.data_ + data.capacity_; i++)
-                os << *i << ' ';
-            for (int *i = data.data_; i <= data.tail_; i++)
-                os << *i << ' ';
-        }
-        os << std::endl;
-        return os;
-    }
-#endif
 };
 
 template<typename T>
