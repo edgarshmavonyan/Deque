@@ -132,8 +132,6 @@ private:
     size_t capacity_;
 
 public:
-
-//    using iterator = base_iterator<T, Deque>;
     typedef base_iterator<Deque, T> iterator;
 
     typedef base_iterator<const Deque, const T > const_iterator;
@@ -147,8 +145,6 @@ public:
 
     Deque(const Deque& other);
 
-//    explicit Deque(const size_t& size) : data_(new T[size]), head_(data_), tail_(data_),  size_(0), capacity_(size) {}
-
     ~Deque() {
         delete[] data_;
     }
@@ -158,12 +154,10 @@ public:
     void decreaseSize();
 
     inline T& back() {
-//        return operator[](size_ - 1);
         return *tail_;
     }
 
     inline const T& back() const {
-//        return operator[](size_ - 1);
         return *tail_;
 
     }
