@@ -7,7 +7,7 @@
 #include <exception>
 
 TEST(main_test, full_random_test) {
-    int size = 100000, queryNum = 100000;
+    size_t size = 100000, queryNum = 100000;
     std::vector<int> values;
     generateSomeValues(size, values);
 
@@ -17,51 +17,21 @@ TEST(main_test, full_random_test) {
     push_values(Deq, values);
     push_values(deq, values);
 
-    std::vector<std::pair<int, int> > queries;
+    std::vector<std::pair<OPERATION, size_t> > queries;
 
     generateTestSequences(values.size(), values.size(), queryNum, queries);
 
-    for (int i = 0; i < queryNum; i++) {
-        auto q = queries[i];
-
-        switch (q.first) {
-            case 0 : {
-                deq.push_back(q.second);
-                Deq.push_back(q.second);
-                break;
-            }
-            case 1: {
-                for (int j = 0; j < q.second; j++) {
-                    deq.pop_back();
-                    Deq.pop_back();
-                }
-                break;
-            }
-            case 2: {
-                deq.push_front(q.second);
-                Deq.push_front(q.second);
-                break;
-            }
-            case 3: {
-                for (int j = 0; j < q.second; j++) {
-                    deq.pop_front();
-                    Deq.pop_front();
-                }
-                break;
-            }
-        }
-        back_front_checker(Deq, deq);
-    }
+    checkResult(values, queryNum, queries, deq, Deq);
 }
 
 TEST(main_test, random_test) {
+    int size = 10000;
 
     std::mt19937 generator(time(0));
 
     Deque<int> Deq;
     std::deque<int> deq;
 
-    int size = 10000;
     for (int i = 0; i < size; i++) {
 
         if (deq.size() && !(generator() % 100)) {
@@ -88,7 +58,7 @@ TEST(main_test, random_test) {
 }
 
 TEST(full_test, random_test) {
-    int size = 1000000;
+    size_t size = 1000000;
     std::mt19937 generator(time(0));
 
     std::vector<int> values;
@@ -97,63 +67,53 @@ TEST(full_test, random_test) {
     std::deque<int> deq;
     Deque<int> Deq;
 
-    for (int i = 0; i < size; i++) {
-        if (generator() % 2) {
-            Deq.push_front(values[i]);
-            deq.push_front(values[i]);
-        } else {
-            Deq.push_back(values[i]);
-            deq.push_back(values[i]);
-        }
-        back_front_checker(Deq, deq);
-    }
+    random_push(values, size, deq, Deq);
 
-    for (int i = 0; i < size; i++) {
-        ASSERT_EQ(deq.size(), Deq.size());
-        back_front_checker(Deq, deq);
-        if (generator() % 2) {
-            deq.pop_back();
-            Deq.pop_back();
-        } else {
-            deq.pop_front();
-            Deq.pop_front();
-        }
-    }
-    ASSERT_TRUE(!deq.size() && !Deq.size());
+    random_pop(size, deq, Deq);
 }
 
 TEST(check_iterator_tests, main) {
-    Deque<int> deq;
+    size_t size = 100000;
 
-    int size = 170000;
+    Deque<int> deq;
 
     for (int i = 0; i < size; i++)
         deq.push_back(i);
 
     int i = 0;
 
-    for (Deque<int>::iterator it = deq.begin(); it != deq.end(); it++, i++)
-        EXPECT_EQ(i, *it);
+    auto it1 = deq.begin();
+    auto it2 = deq.cbegin();
+
+    for (; it1 != deq.end() && it2 != deq.cend(); it1++, it2++, i++) {
+        EXPECT_EQ(i, *it1);
+        EXPECT_EQ(i, *it2);
+    }
 }
 
 TEST(check_iterator_tests, reverse) {
     Deque<int> deq;
 
-    int size = 170000;
+    int size = 100000;
 
     for (int i = 0; i < size; i++)
         deq.push_back(i);
 
     int i = 0;
-    
-    for (Deque<int>::reverse_iterator it = deq.rbegin(); it != deq.rend(); it++, i++)
-        EXPECT_EQ(size - i - 1, *it);
+
+    auto it1 = deq.rbegin();
+    auto it2 = deq.crbegin();
+
+    for (; it1 != deq.rend() && it2 != deq.crend(); it1++, it2++, i++) {
+        EXPECT_EQ(size - i - 1, *it1);
+        EXPECT_EQ(size - i - 1, *it2);
+    }
 }
 
 TEST(iterator_tests, stl_sort) {
     std::vector<int> values;
     Deque<int> deq;
-    int n = 170000;
+    int n = 100000;
     for (int i = 0; i < n; i++)
         values.push_back(n - i - 1);
 
@@ -162,7 +122,7 @@ TEST(iterator_tests, stl_sort) {
     for (int i = 0; i < n; i++)
         deq.push_back(values[i]);
 
-    sort(deq.begin(), deq.end());
+    std::sort(deq.begin(), deq.end());
 
     int i = 0;
     for (Deque<int>::iterator it = deq.begin(); it != deq.end(); it++, i++)
@@ -182,7 +142,7 @@ TEST(iterator_tests, stl_reverse_sort) {
     for (int i = 0; i < size; i++)
         deq.push_back(values[i]);
 
-    sort(deq.rbegin(), deq.rend());
+    std::sort(deq.rbegin(), deq.rend());
 
     int i = 0;
     for (Deque<int>::iterator it = deq.begin(); it != deq.end(); it++, i++)
@@ -194,7 +154,6 @@ TEST(method_testing, back_front_test) {
     std::deque<int> deq;
     int size = 1000000;
     for (int i = 0; i < size; i++) {
-
         if (deq.size() && !(rand() % 2)) {
             deq.pop_back();
             Deq.pop_back();

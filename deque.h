@@ -143,15 +143,25 @@ public:
 
     Deque() : data_(nullptr), head_(nullptr), tail_(nullptr), size_(0), capacity_(0) {}
 
+    inline void initData() {
+        if (data_ == nullptr) {
+            data_ = new T[4];
+            tail_ = head_ = data_;
+            capacity_ = 4;
+            size_ = 0;
+            return;
+        }
+    }
+
     Deque(const Deque& other);
 
     ~Deque() {
         delete[] data_;
     }
 
-    void increaseSize();
+    void copy(T* data);
 
-    void decreaseSize();
+    bool resizeIfNeeded();
 
     inline T& back() {
         return *tail_;
@@ -171,7 +181,6 @@ public:
     }
 
     T& operator[](int i) {
-
         if (head_ + i < data_ + capacity_)
             return *(head_ + i);
 
@@ -204,20 +213,20 @@ public:
         return const_iterator(*this, ptrdiff_t(0));
     }
 
+    const_iterator cend() const {
+        return const_iterator(*this, ptrdiff_t(size_));
+    }
+
     const_iterator begin() const {
-        return const_iterator(*this, ptrdiff_t(0));
+        return cbegin();
     }
 
     iterator begin() {
         return iterator(*this, ptrdiff_t(0));
     }
 
-    const_iterator cend() const {
-        return const_iterator(*this, ptrdiff_t(size_));
-    }
-
     const_iterator end() const {
-        return const_iterator(*this, ptrdiff_t(size_));
+        return cend();
     }
 
     iterator end() {
@@ -225,29 +234,28 @@ public:
     }
 
     std::reverse_iterator<const_iterator> crbegin() const {
-        return std::reverse_iterator<const_iterator>(const_iterator(*this, ptrdiff_t(size_)));
+        return const_reverse_iterator(const_iterator(*this, ptrdiff_t(size_)));
     }
 
     std::reverse_iterator<iterator> rbegin() {
-        return std::reverse_iterator<iterator>(iterator(*this, ptrdiff_t(size_)));
+        return reverse_iterator(iterator(*this, ptrdiff_t(size_)));
     }
 
     std::reverse_iterator<const_iterator> rbegin() const {
-        return std::reverse_iterator<const_iterator>(const_iterator(*this, ptrdiff_t(size_)));
+        return crbegin();
     }
 
     std::reverse_iterator<iterator> rend() {
-        return std::reverse_iterator<iterator>(iterator(*this, ptrdiff_t(0)));
-    }
-
-    std::reverse_iterator<const_iterator> rend() const {
-        return std::reverse_iterator<const_iterator>(const_iterator(*this, ptrdiff_t(0)));
+        return reverse_iterator(iterator(*this, ptrdiff_t(0)));
     }
 
     std::reverse_iterator<const_iterator> crend() const {
-        return std::reverse_iterator<const_iterator>(const_iterator(*this, ptrdiff_t(0)));
+        return const_reverse_iterator(const_iterator(*this, ptrdiff_t(0)));
     }
 
+    std::reverse_iterator<const_iterator> rend() const {
+        return crend();
+    }
 };
 
 template<typename T>
@@ -264,31 +272,19 @@ size_t Deque<T>::size() const {
 template<typename T>
 void Deque<T>::push_back(const T& value) {
 
-    if (data_ == nullptr) {
-        data_ = new T[4];
-        tail_ = head_ = data_;
-        capacity_ = 4;
-        *tail_ = value;
-        size_ = 1;
-        return;
+    if (!resizeIfNeeded()) {
+        if (tail_ == data_ + capacity_ - 1)
+            tail_ = data_;
+        else
+            tail_++;
     }
-
-    if (size() == capacity_)
-        increaseSize();
-
-    if (tail_ == data_ + capacity_ - 1)
-        tail_ = data_;
-    else
-        tail_++;
 
     *tail_ = value;
     ++size_;
 }
 
 template<typename T>
-void Deque<T>::increaseSize() {
-    auto data = new T[2 * capacity_];
-
+void Deque<T>::copy(T* data) {
     if (head_ <= tail_)
         memcpy(data, head_, sizeof(T) * (tail_ - head_ + 1));
     else {
@@ -297,60 +293,52 @@ void Deque<T>::increaseSize() {
         memcpy(data, head_, sizeof(T) * firstHalf);
         memcpy(data + firstHalf, data_, sizeof(T) * secondHalf);
     }
-
-    delete[] data_;
-    head_ = data_ = data;
-    tail_ = data_ + capacity_ - 1;
-    capacity_ *= 2;
 }
 
+
 template<typename T>
-void Deque<T>::decreaseSize() {
-    auto data = new T[capacity_ / 2];
+bool Deque<T>::resizeIfNeeded() {
 
-
-    if (head_ <= tail_)
-        memcpy(data, head_, sizeof(T) * (tail_ - head_ + 1));
-    else {
-        size_t firstHalf = data_ + capacity_ - head_;
-        size_t secondHalf = tail_ - data_ + 1;
-        memcpy(data, head_, sizeof(T) * firstHalf);
-        memcpy(data + firstHalf, data_, sizeof(T) * secondHalf);
+    if (data_ == nullptr) {
+        initData();
+        return true;
     }
-    /*
-    int i = 0;
-    for (auto it = begin(); it != end(); ++it, ++i)
-        *(data + i) = *it;
-*/
+
+    T* data = nullptr;
+    size_t newCapacity;
+
+    if (size() == capacity_) {
+        newCapacity = 2 * capacity_;
+        data = new T[newCapacity];
+    }
+    if (capacity_ != 2 && capacity_ != 1 && capacity_ != 8 && capacity_ != 4 && size() == capacity_/4) {
+        newCapacity = capacity_ / 2;
+        data = new T[newCapacity];
+    }
+
+    if (!data)
+        return false;
+
+    copy(data);
+
     delete[] data_;
     head_ = data_ = data;
-    tail_ = data_ + capacity_/4 - 1;
-    capacity_ /= 2;
-
+    tail_ = data_ + size_ - 1;
+    capacity_ = newCapacity;
+    return false;
 }
 
 template<typename T>
 void Deque<T>::push_front(const T& value) {
 
-    if (data_ == nullptr) {
-        data_ = new T[4];
-        tail_ = head_ = data_;
-        capacity_ = 4;
-        *head_ = value;
-        size_ = 1;
-        return;
+    if (!resizeIfNeeded()) {
+        if (head_ == data_)
+            head_ = data_ + capacity_ - 1;
+        else
+            head_--;
     }
 
-    if (size() == capacity_)
-        increaseSize();
-
-    if (head_ == data_)
-        head_ = data_ + capacity_ - 1;
-    else
-        head_--;
-
     *head_ = value;
-
     ++size_;
 }
 
@@ -364,8 +352,7 @@ void Deque<T>::pop_back() {
 
     --size_;
 
-    if (capacity_ != 2 && capacity_ != 1 && capacity_ != 8 && capacity_ != 4 && size() == capacity_/4)
-        decreaseSize();
+    resizeIfNeeded();
 }
 
 template<typename T>
@@ -378,6 +365,5 @@ void Deque<T>::pop_front() {
 
     --size_;
 
-    if (capacity_ != 8 && capacity_ != 4 && size() == capacity_/4)
-        decreaseSize();
+    resizeIfNeeded();
 }
