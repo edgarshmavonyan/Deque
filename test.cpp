@@ -1,9 +1,58 @@
 #include "gtest/gtest.h"
+#include "testhelper.h"
 #include "deque.h"
 #include <vector>
 #include <random>
 #include <deque>
 #include <exception>
+
+TEST(main_test, full_random_test) {
+    int size = 100000, queryNum = 100000;
+    std::vector<int> values;
+    generateSomeValues(size, values);
+
+    Deque<int> Deq;
+    std::deque<int> deq;
+
+    push_values(Deq, values);
+    push_values(deq, values);
+
+    std::vector<std::pair<int, int> > queries;
+
+    generateTestSequences(values.size(), values.size(), queryNum, queries);
+
+    for (int i = 0; i < queryNum; i++) {
+        auto q = queries[i];
+
+        switch (q.first) {
+            case 0 : {
+                deq.push_back(q.second);
+                Deq.push_back(q.second);
+                break;
+            }
+            case 1: {
+                for (int j = 0; j < q.second; j++) {
+                    deq.pop_back();
+                    Deq.pop_back();
+                }
+                break;
+            }
+            case 2: {
+                deq.push_front(q.second);
+                Deq.push_front(q.second);
+                break;
+            }
+            case 3: {
+                for (int j = 0; j < q.second; j++) {
+                    deq.pop_front();
+                    Deq.pop_front();
+                }
+                break;
+            }
+        }
+        back_front_checker(Deq, deq);
+    }
+}
 
 TEST(main_test, random_test) {
 
@@ -21,19 +70,56 @@ TEST(main_test, random_test) {
         }
 
         if (deq.size() && !(generator() % 100)) {
-            deq.pop_front();
-            Deq.pop_front();
+            if (generator() % 2) {
+                deq.pop_front();
+                Deq.pop_front();
+            }
+            else {
+                deq.pop_back();
+                Deq.pop_back();
+            }
         }
         else {
             deq.push_front(i);
             Deq.push_front(i);
         }
+        back_front_checker(Deq, deq);
+    }
+}
 
-        EXPECT_EQ(deq.size(), Deq.size());
-        for (int i = 0; i < deq.size(); i++) {
-            ASSERT_EQ(deq[i], Deq[i]);
+TEST(full_test, random_test) {
+    int size = 1000000;
+    std::mt19937 generator(time(0));
+
+    std::vector<int> values;
+    generateSomeValues(size, values);
+
+    std::deque<int> deq;
+    Deque<int> Deq;
+
+    for (int i = 0; i < size; i++) {
+        if (generator() % 2) {
+            Deq.push_front(values[i]);
+            deq.push_front(values[i]);
+        } else {
+            Deq.push_back(values[i]);
+            deq.push_back(values[i]);
+        }
+        back_front_checker(Deq, deq);
+    }
+
+    for (int i = 0; i < size; i++) {
+        ASSERT_EQ(deq.size(), Deq.size());
+        back_front_checker(Deq, deq);
+        if (generator() % 2) {
+            deq.pop_back();
+            Deq.pop_back();
+        } else {
+            deq.pop_front();
+            Deq.pop_front();
         }
     }
+    ASSERT_TRUE(!deq.size() && !Deq.size());
 }
 
 TEST(check_iterator_tests, main) {
@@ -104,29 +190,24 @@ TEST(iterator_tests, stl_reverse_sort) {
 }
 
 TEST(method_testing, back_front_test) {
-    Deque<int> D;
-    std::deque<int> d;
+    Deque<int> Deq;
+    std::deque<int> deq;
     int size = 1000000;
     for (int i = 0; i < size; i++) {
 
-        if (d.size() && !(rand() % 2)) {
-            d.pop_back();
-            D.pop_back();
+        if (deq.size() && !(rand() % 2)) {
+            deq.pop_back();
+            Deq.pop_back();
         }
-        if (d.size() && !(rand() % 2)) {
-            d.pop_front();
-            D.pop_front();
+        if (deq.size() && !(rand() % 2)) {
+            deq.pop_front();
+            Deq.pop_front();
         }
         else {
-            d.push_front(i);
-            D.push_front(i);
+            deq.push_front(i);
+            Deq.push_front(i);
         }
-        EXPECT_EQ(d.size(), D.size());
-
-        if (d.size()) {
-            ASSERT_EQ(d.front(), D.front());
-            ASSERT_EQ(d.back(), D.back());
-        }
+        back_front_checker(Deq, deq);
     }
 }
 

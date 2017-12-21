@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <type_traits>
 
+#pragma once
+
 
 template <class deque, class T>
 class base_iterator : public std::iterator<std::random_access_iterator_tag, T> {
